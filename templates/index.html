@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>猜猜我是谁sdfj版</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="page center-page">
+    <h1>猜猜我是谁sdfj版</h1>
+
+    <p class="description">
+        创建房间后，把房间码发给第二位玩家。
+        第二位玩家输入房间码后，就可以一起开始游戏啦！
+    </p>
+
+    {% if error %}
+        <div class="error-box">
+            {{ error }}
+        </div>
+    {% endif %}
+
+    <div class="home-actions">
+        <form method="post" action="{{ url_for('create_room') }}">
+            <button class="main-btn" type="submit">创建房间</button>
+        </form>
+
+        <form method="post" action="{{ url_for('join_room') }}" class="join-form">
+            <input
+                type="text"
+                name="room_code"
+                placeholder="输入房间码"
+                maxlength="6"
+                autocomplete="off"
+                required
+            >
+            <button type="submit">加入房间</button>
+        </form>
+    </div>
+</div>
+
+</body>
+</html>

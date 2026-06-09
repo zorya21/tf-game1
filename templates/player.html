@@ -1,0 +1,1313 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>猜猜我是谁sdfj版</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+{% set player_label = "玩家一" if player == "p1" else "玩家二" %}
+{% set opponent_label = "玩家二" if player == "p1" else "玩家一" %}
+
+<div class="page">
+
+    <header class="top-bar">
+        <div>
+            <h1>{{ player_label }} 页面</h1>
+            <p class="room-code-line">
+                房间码：<strong id="roomCodeText">{{ room_code }}</strong>
+                <button type="button" class="copy-room-btn" onclick="copyRoomCode()">
+                    复制房间码
+                </button>
+            </p>
+        </div>
+
+        <a class="small-link" href="{{ url_for('index') }}">
+            返回首页
+        </a>
+    </header>
+
+    <div id="waitingBox" class="waiting-room-box {% if started %}hidden{% endif %}">
+        等待另一位玩家加入……
+        <br>
+        请把房间码 <strong>{{ room_code }}</strong> 发给第二位玩家。
+    </div>
+
+    <div id="stickyGameControls" class="sticky-game-controls">
+
+    <div id="turnStatusBox" class="turn-status-box">
+        <div class="turn-status-header">
+            <div class="turn-status-main">
+                <div id="turnStatusText" class="turn-status-text">正在加载当前轮次……</div>
+                <div id="turnSubStatusText" class="turn-sub-status-text">请稍等。</div>
+            </div>
+
+            <div class="status-action-buttons">
+                <button type="button" class="status-pill-button" onclick="openRecordsPanel()">
+                    问答 / 猜测记录
+                </button>
+                <button type="button" class="status-pill-button chat-open-button" onclick="openChatPanel()">
+                    聊天
+                    <span id="chatUnreadBadge" class="chat-unread-badge hidden">0</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="turnActionArea" class="turn-action-area turn-action-card">
+        <form id="questionForm" class="question-form compact-question-form hidden">
+            <input
+                id="questionInput"
+                type="text"
+                name="question"
+                placeholder="请只问是非题，eg.此人是否姓张？"
+                autocomplete="off"
+                required
+            >
+            <button type="submit">发送问题</button>
+        </form>
+
+        <div id="answerActionBox" class="turn-answer-box hidden">
+            <div class="answer-preview-label">请回答对方的问题：</div>
+            <div id="answerQuestionPreview" class="answer-question-preview"></div>
+            <div class="answer-form inline-answer-buttons">
+                <button id="answerYesButton" type="button">是</button>
+                <button id="answerNoButton" type="button">否</button>
+            </div>
+        </div>
+
+        <div id="currentRoundQaBox" class="current-round-qa-box hidden">
+            <div class="current-round-qa-title">本轮问答</div>
+            <div id="currentRoundQaList" class="current-round-qa-list"></div>
+        </div>
+
+        <div id="turnActionHint" class="turn-action-hint">
+            正在读取当前可操作内容……
+        </div>
+    </div>
+
+    </div>
+
+
+    {% if winner %}
+        <div class="winner-box">
+            {% if finish_reason == "both_correct" %}
+                🤝 平局！你们在同一轮都猜中了秘密人物。
+
+            {% elif finish_reason == "both_max_wrong" %}
+                🤝 平局！双方都已经猜错 3 次，本局无人获胜。
+
+            {% elif finish_reason == "max_wrong" %}
+                {% if winner == player %}
+                    🎉 对方已经猜错 3 次，你自动获胜！
+                {% else %}
+                    😭 你已经猜错 3 次. . .
+                {% endif %}
+
+            {% elif finish_reason == "correct_guess" %}
+                {% if winner == player %}
+                    🎉 你率先猜中了秘密人物，恭喜获胜！
+                {% else %}
+                    😭 {{ opponent_label }} 率先猜中了秘密人物. . .
+                {% endif %}
+
+            {% else %}
+                {% if winner == "draw" %}
+                    🤝 平局！
+                {% elif winner == player %}
+                    🎉 你赢了！
+                {% else %}
+                    😭 你输了。
+                {% endif %}
+            {% endif %}
+        </div>
+    {% endif %}
+
+    <div id="endRevealBox" class="end-reveal-box hidden">
+        <h2>本局结束</h2>
+
+        <p>你的秘密人物是：</p>
+
+        <div class="secret-card end-secret-card">
+            <img id="mySecretImage" src="" alt="" class="hidden">
+            <div id="mySecretName"></div>
+        </div>
+
+        <button id="rematchButton" type="button" class="rematch-button">
+            再来一局
+        </button>
+
+        <p id="rematchStatusText" class="rematch-status-text">
+            双方都点击后会开启新一局。
+        </p>
+    </div>
+
+    <section class="secret-section">
+        <h2>对方的秘密人物</h2>
+
+        <p>
+            这是 {{ opponent_label }} 需要猜的人。
+            请你根据这个人回答 {{ opponent_label }} 的提问。
+        </p>
+
+        <div class="secret-card">
+            <img src="{{ url_for('static', filename='cards/' + known_secret.image) }}" alt="{{ known_secret.name }}">
+            <div>{{ known_secret.name }}</div>
+        </div>
+    </section>
+
+    <section class="board-section">
+        <div class="board-header-row">
+            <div class="board-title-text">
+                <h2>你的秘密人物在以下24人中</h2>
+
+                <p>
+                    猜出自己的秘密人物即可获胜，通过提问来排除吧！
+                </p>
+            </div>
+
+            <div class="board-right-info">
+                <div id="wrongCountBox" class="wrong-count-box board-wrong-count">
+                    <div>猜测次数：正在加载……</div>
+                    <div class="wrong-count-hint">仅有 3 次机会哦！</div>
+                </div>
+
+                <p class="eliminate-tip">
+                    点击标记“排除”
+                </p>
+            </div>
+        </div>
+
+        <div id="guessPhaseActions" class="guess-phase-actions hidden">
+            <button id="skipGuessButton" type="button">
+                本轮不猜，进入下一轮
+            </button>
+        </div>
+
+        <div class="cards-grid">
+            {% for card in board %}
+                <div
+                    class="person-card {% if card.name in eliminated %}eliminated{% endif %}"
+                    onclick='toggleCard(this, {{ card.name|tojson }})'
+                >
+                    <img src="{{ url_for('static', filename='cards/' + card.image) }}" alt="{{ card.name }}">
+
+                    <div class="person-name">
+                        {{ card.name }}
+                    </div>
+
+                    <form
+                        method="post"
+                        action="{{ url_for('guess_secret', room_code=room_code) }}"
+                        class="guess-form"
+                    >
+                        <input type="hidden" name="guess" value="{{ card.name }}">
+
+                        <button
+                            type="button"
+                            class="guess-button"
+                            onclick='openGuessModal(this.closest("form"), {{ card.name|tojson }})'
+                        >
+                            问答结束后可猜
+                        </button>
+                    </form>
+                </div>
+            {% endfor %}
+        </div>
+    </section>
+
+</div>
+
+<div id="recordsModal" class="floating-panel-overlay hidden">
+    <div class="floating-panel records-panel">
+        <div class="panel-header">
+            <div>
+                <h2>游戏记录</h2>
+                <p>可以切换查看问答记录和猜测记录。</p>
+            </div>
+            <button type="button" class="panel-close-btn" onclick="closeRecordsPanel()">×</button>
+        </div>
+
+        <div class="panel-tabs">
+            <button id="questionsTabButton" type="button" class="panel-tab active" onclick="switchRecordsTab('questions')">
+                问答记录
+            </button>
+            <button id="guessesTabButton" type="button" class="panel-tab" onclick="switchRecordsTab('guesses')">
+                猜测记录
+            </button>
+        </div>
+
+        <div id="questionsTab" class="panel-content">
+            <div id="questionList">
+                <p class="empty-text">正在加载问题记录...</p>
+            </div>
+        </div>
+
+        <div id="guessesTab" class="panel-content hidden">
+            <div id="guessList">
+                <p class="empty-text">正在加载猜测记录...</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="chatModal" class="floating-panel-overlay hidden">
+    <div class="floating-panel chat-panel">
+        <div class="panel-header">
+            <div>
+                <h2>房间聊天</h2>
+                <p>只有本房间的两位玩家可以看到。</p>
+            </div>
+            <button type="button" class="panel-close-btn" onclick="closeChatPanel()">×</button>
+        </div>
+
+        <div id="chatMessages" class="chat-messages">
+            <p class="empty-text">正在加载聊天记录...</p>
+        </div>
+
+        <form id="chatForm" class="chat-form">
+            <input
+                id="chatInput"
+                type="text"
+                maxlength="300"
+                placeholder="输入消息，最多 300 字"
+                autocomplete="off"
+            >
+            <button type="submit">发送</button>
+        </form>
+    </div>
+</div>
+
+<div id="guessModal" class="modal-overlay hidden">
+    <div class="modal-box">
+        <h2>确认猜测</h2>
+
+        <p>
+            你确定要猜
+            <strong id="guessNameText"></strong>
+            吗？
+        </p>
+
+        <p class="modal-hint">
+            如果猜错，记录里会显示错误。
+        </p>
+
+        <div class="modal-buttons">
+            <button type="button" class="modal-cancel-btn" onclick="closeGuessModal()">
+                取消
+            </button>
+
+            <button type="button" class="modal-confirm-btn" onclick="submitGuess()">
+                确认猜测
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const roomCode = "{{ room_code }}";
+    const currentPlayer = "{{ player }}";
+    let currentMatchId = "{{ match_id }}";
+
+    const toggleUrl = "{{ url_for('toggle_card', room_code=room_code) }}";
+    const stateUrl = "{{ url_for('api_state', room_code=room_code) }}";
+    const askUrl = "{{ url_for('api_ask_question', room_code=room_code) }}";
+    const skipGuessUrl = "{{ url_for('api_skip_guess', room_code=room_code) }}";
+    const rematchUrl = "{{ url_for('api_rematch', room_code=room_code) }}";
+    const chatUrl = "{{ url_for('api_send_chat', room_code=room_code) }}";
+    const cardBaseUrl = "{{ url_for('static', filename='cards/') }}";
+
+    let pollTimer = null;
+    let currentPollInterval = 2000;   // 初始默认2秒
+    let pendingGuessForm = null;
+    let canAskNow = false;
+    let canGuessNow = false;
+    let alreadyDecidedThisRound = false;
+    let isChatOpen = false;
+    let latestChatCount = 0;
+    let lastSeenChatCount = 0;
+
+    // 新增调度函数
+    function schedulePoll(intervalMs) {
+        if (pollTimer) {
+            clearTimeout(pollTimer);
+        }
+        if (intervalMs === undefined) {
+            intervalMs = currentPollInterval;
+        } else {
+            currentPollInterval = intervalMs;
+        }
+        pollTimer = setTimeout(loadGameState, currentPollInterval);
+    }
+
+    function playerName(player) {
+        return player === "p1" ? "玩家一" : "玩家二";
+    }
+
+    function getOpponentPlayer() {
+        return currentPlayer === "p1" ? "p2" : "p1";
+    }
+
+    function getOtherPlayer(player) {
+        return player === "p1" ? "p2" : "p1";
+    }
+
+    function escapeHtml(text) {
+        return String(text)
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#039;");
+    }
+
+    function copyRoomCode() {
+        const roomCodeText = document.getElementById("roomCodeText");
+        const copyButton = document.querySelector(".copy-room-btn");
+
+        if (!roomCodeText) {
+            return;
+        }
+
+        const code = roomCodeText.textContent.trim();
+
+        function showCopied() {
+            if (!copyButton) {
+                return;
+            }
+
+            const originalText = copyButton.textContent;
+            copyButton.textContent = "已复制";
+            copyButton.disabled = true;
+
+            setTimeout(function() {
+                copyButton.textContent = originalText;
+                copyButton.disabled = false;
+            }, 1200);
+        }
+
+        if (navigator.clipboard && window.isSecureContext) {
+            navigator.clipboard.writeText(code).then(showCopied).catch(function() {
+                alert("复制失败，请手动复制房间码。");
+            });
+            return;
+        }
+
+        const tempInput = document.createElement("input");
+        tempInput.value = code;
+        document.body.appendChild(tempInput);
+        tempInput.select();
+
+        try {
+            document.execCommand("copy");
+            showCopied();
+        } catch (error) {
+            alert("复制失败，请手动复制房间码。");
+        }
+
+        document.body.removeChild(tempInput);
+    }
+
+    function openGuessModal(form, name) {
+        if (!canGuessNow) {
+            alert("本轮两个人都问完并得到回答后，才可以猜测。");
+            return;
+        }
+
+        if (alreadyDecidedThisRound) {
+            alert("你本轮已经猜过或选择不猜了。");
+            return;
+        }
+
+        pendingGuessForm = form;
+
+        const modal = document.getElementById("guessModal");
+        const guessNameText = document.getElementById("guessNameText");
+
+        guessNameText.textContent = name;
+        modal.classList.remove("hidden");
+    }
+
+    function closeGuessModal() {
+        const modal = document.getElementById("guessModal");
+
+        modal.classList.add("hidden");
+        pendingGuessForm = null;
+    }
+
+    function submitGuess() {
+        if (pendingGuessForm) {
+            pendingGuessForm.submit();
+        }
+    }
+
+    document.getElementById("guessModal").addEventListener("click", function(event) {
+        if (event.target.id === "guessModal") {
+            closeGuessModal();
+        }
+    });
+
+    function openRecordsPanel() {
+        document.getElementById("recordsModal").classList.remove("hidden");
+    }
+
+    function closeRecordsPanel() {
+        document.getElementById("recordsModal").classList.add("hidden");
+    }
+
+    function switchRecordsTab(tabName) {
+        const questionsTab = document.getElementById("questionsTab");
+        const guessesTab = document.getElementById("guessesTab");
+        const questionsButton = document.getElementById("questionsTabButton");
+        const guessesButton = document.getElementById("guessesTabButton");
+
+        const showQuestions = tabName === "questions";
+
+        questionsTab.classList.toggle("hidden", !showQuestions);
+        guessesTab.classList.toggle("hidden", showQuestions);
+        questionsButton.classList.toggle("active", showQuestions);
+        guessesButton.classList.toggle("active", !showQuestions);
+    }
+
+    document.getElementById("recordsModal").addEventListener("click", function(event) {
+        if (event.target.id === "recordsModal") {
+            closeRecordsPanel();
+        }
+    });
+
+    function openChatPanel() {
+        isChatOpen = true;
+        document.getElementById("chatModal").classList.remove("hidden");
+        lastSeenChatCount = latestChatCount;
+        updateChatBadge();
+        setTimeout(scrollChatToBottom, 0);
+    }
+
+    function closeChatPanel() {
+        isChatOpen = false;
+        document.getElementById("chatModal").classList.add("hidden");
+        lastSeenChatCount = latestChatCount;
+        updateChatBadge();
+    }
+
+    document.getElementById("chatModal").addEventListener("click", function(event) {
+        if (event.target.id === "chatModal") {
+            closeChatPanel();
+        }
+    });
+
+    function updateChatBadge() {
+        const badge = document.getElementById("chatUnreadBadge");
+        const unread = Math.max(0, latestChatCount - lastSeenChatCount);
+
+        if (!badge) {
+            return;
+        }
+
+        if (unread > 0 && !isChatOpen) {
+            badge.textContent = unread > 99 ? "99+" : String(unread);
+            badge.classList.remove("hidden");
+        } else {
+            badge.classList.add("hidden");
+        }
+    }
+
+    function scrollChatToBottom() {
+        const box = document.getElementById("chatMessages");
+        if (box) {
+            box.scrollTop = box.scrollHeight;
+        }
+    }
+
+    async function toggleCard(cardElement, name) {
+        try {
+            const response = await fetch(toggleUrl, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ name: name })
+            });
+
+            const data = await response.json();
+
+            if (!data.ok) {
+                alert(data.error || "操作失败");
+                return;
+            }
+
+            cardElement.classList.toggle("eliminated", data.eliminated);
+        } catch (error) {
+            alert("网络错误，请刷新页面后再试。");
+        }
+    }
+
+    async function loadGameState() {
+        try {
+            const response = await fetch(stateUrl, {
+                cache: "no-store"
+            });
+            const data = await response.json();
+
+            if (!data.ok) {
+                // 即使出错，也继续轮询（使用当前间隔）
+                schedulePoll();
+                return;
+            }
+
+            if (data.match_id && data.match_id !== currentMatchId) {
+                window.location.reload();
+                return;
+            }
+
+            // 渲染所有界面（原有代码）
+            renderWaitingBox(data.started);
+            renderTurnStatus(data);
+            renderTurnAction(data);
+            renderCurrentRoundQa(data);
+            renderWrongCounts(data);
+            renderQuestions(data.questions, data);
+            renderGuesses(data.guesses);
+            renderChat(data.chat_messages || []);
+            renderWinner(data);
+            renderEndReveal(data);
+            updateQuestionForm(data);
+            updateGuessControls(data);
+
+            // 关键：根据后端推荐的间隔安排下一次轮询
+            let nextInterval = data.poll_interval_ms;
+            if (nextInterval && typeof nextInterval === 'number' && nextInterval >= 1000) {
+                schedulePoll(nextInterval);
+            } else {
+                // 容错：如果后端没有返回有效值，使用当前间隔
+                schedulePoll();
+            }
+        } catch (error) {
+            console.log("加载最新状态失败", error);
+            // 出错后仍继续轮询，使用当前间隔
+            schedulePoll();
+        }
+    }
+
+    function renderWaitingBox(started) {
+        const waitingBox = document.getElementById("waitingBox");
+
+        if (!waitingBox) {
+            return;
+        }
+
+        if (started) {
+            waitingBox.classList.add("hidden");
+        } else {
+            waitingBox.classList.remove("hidden");
+        }
+    }
+
+    function renderTurnStatus(data) {
+        const mainText = document.getElementById("turnStatusText");
+        const subText = document.getElementById("turnSubStatusText");
+
+        if (!mainText || !subText) {
+            return;
+        }
+
+        const round = data.current_round;
+        const phase = data.phase;
+        const opponent = getOpponentPlayer();
+
+        const myGuess = data.round_guesses[currentPlayer];
+        const opponentGuess = data.round_guesses[opponent];
+
+        let text = "";
+        let detail = "";
+
+        if (!data.started) {
+            text = "等待另一位玩家加入后开始第 1 轮。";
+            detail = "可以先把房间码发给朋友。";
+        } else if (data.winner) {
+            text = "游戏已结束。";
+            detail = "可以查看记录、聊天，或等待双方点击再来一局。";
+        } else if (phase === "p1_ask") {
+            text = currentPlayer === "p1"
+                ? `第 ${round} 轮：轮到你提问。`
+                : `第 ${round} 轮：等待玩家一提问。`;
+            detail = currentPlayer === "p1"
+                ? "请在下方输入一个是非题。"
+                : "对方提问后，你会在这里直接回答。";
+        } else if (phase === "p2_answer") {
+            text = currentPlayer === "p2"
+                ? `第 ${round} 轮：请回答玩家一的问题。`
+                : `第 ${round} 轮：等待玩家二回答。`;
+            detail = currentPlayer === "p2"
+                ? "请根据对方秘密人物选择“是”或“否”。"
+                : "对方回答后会进入玩家二提问阶段。";
+        } else if (phase === "p2_ask") {
+            text = currentPlayer === "p2"
+                ? `第 ${round} 轮：轮到你提问。`
+                : `第 ${round} 轮：等待玩家二提问。`;
+            detail = currentPlayer === "p2"
+                ? "请在下方输入一个是非题。"
+                : "对方提问后，你会在这里直接回答。";
+        } else if (phase === "p1_answer") {
+            text = currentPlayer === "p1"
+                ? `第 ${round} 轮：请回答玩家二的问题。`
+                : `第 ${round} 轮：等待玩家一回答。`;
+            detail = currentPlayer === "p1"
+                ? "请根据对方秘密人物选择“是”或“否”。"
+                : "对方回答后，本轮会进入猜测阶段。";
+        } else if (phase === "guess") {
+            if (myGuess && !opponentGuess) {
+                text = `第 ${round} 轮：你已经做出选择。`;
+                detail = "等待对方本轮猜测或选择不猜。";
+            } else if (!myGuess && opponentGuess) {
+                text = `第 ${round} 轮：对方已经做出选择，现在轮到你。`;
+                detail = "你可以在人物卡上猜测，也可以选择本轮不猜。";
+            } else if (!myGuess) {
+                text = `第 ${round} 轮：本轮问答已完成。`;
+                detail = "现在可以猜测，也可以选择本轮不猜。";
+            } else {
+                text = `第 ${round} 轮：等待结算。`;
+                detail = "双方都提交后会自动进入下一步。";
+            }
+        } else if (phase === "finished") {
+            text = "游戏已结束。";
+            detail = "可以查看记录、聊天，或等待双方点击再来一局。";
+        } else {
+            text = "正在加载当前状态。";
+            detail = "请稍等。";
+        }
+
+        mainText.textContent = text;
+        subText.textContent = detail;
+    }
+
+    function findPendingAnswerQuestion(data) {
+        const questions = data.questions || [];
+
+        for (let i = questions.length - 1; i >= 0; i--) {
+            const q = questions[i];
+
+            if (q.round === data.current_round && q.from_player !== currentPlayer && !q.answer) {
+                return q;
+            }
+        }
+
+        return null;
+    }
+
+    function renderCurrentRoundQa(data) {
+        const box = document.getElementById("currentRoundQaBox");
+        const list = document.getElementById("currentRoundQaList");
+
+        if (!box || !list) return;
+
+        const questions = (data.questions || []).filter(function(q) {
+            return q.round === data.current_round && q.from_player === currentPlayer;
+        });
+
+        if (!data.started || questions.length === 0) {
+            box.classList.add("hidden");
+            list.innerHTML = "";
+            return;
+        }
+
+        box.classList.remove("hidden");
+        list.innerHTML = "";
+
+        questions.forEach(function(q) {
+            const item = document.createElement("div");
+            item.className = "current-round-qa-item my-current-qa";
+
+            const answerText = q.answer || "";
+            const answerBadge = answerText
+                ? `<span class="qa-answer-badge">${escapeHtml(answerText)}</span>`
+                : `<span class="qa-answer-badge waiting">等待回答</span>`;
+
+            item.innerHTML = `
+                <div class="qa-row">
+                    <div class="question-text">${escapeHtml(q.text)}</div>
+                    ${answerBadge}
+                </div>
+            `;
+
+            list.appendChild(item);
+        });
+    }
+
+    function renderTurnAction(data) {
+        const actionArea = document.getElementById("turnActionArea");
+        const questionFormBox = document.getElementById("questionForm");
+        const answerBox = document.getElementById("answerActionBox");
+        const actionHint = document.getElementById("turnActionHint");
+        const answerPreview = document.getElementById("answerQuestionPreview");
+        const yesButton = document.getElementById("answerYesButton");
+        const noButton = document.getElementById("answerNoButton");
+
+        const pendingQuestion = findPendingAnswerQuestion(data);
+        const shouldShowQuestionForm = data.can_ask && !data.winner;
+        const shouldShowAnswerBox = data.can_answer && pendingQuestion && !data.winner;
+        const hasCurrentRoundQa = data.started && (data.questions || []).some(function(q) {
+            return q.round === data.current_round && q.from_player === currentPlayer;
+        });
+        const hasActionContent = shouldShowQuestionForm || shouldShowAnswerBox || hasCurrentRoundQa;
+
+        if (actionArea) {
+            actionArea.classList.toggle("is-active", shouldShowQuestionForm || shouldShowAnswerBox);
+            actionArea.classList.toggle("is-idle", !hasActionContent);
+        }
+
+        questionFormBox.classList.toggle("hidden", !shouldShowQuestionForm);
+        answerBox.classList.toggle("hidden", !shouldShowAnswerBox);
+
+        if (shouldShowAnswerBox) {
+            answerPreview.innerHTML = `
+                <strong>${playerName(pendingQuestion.from_player)}：</strong>
+                ${escapeHtml(pendingQuestion.text)}
+            `;
+            yesButton.onclick = function() {
+                answerQuestion(pendingQuestion.id, "yes");
+            };
+            noButton.onclick = function() {
+                answerQuestion(pendingQuestion.id, "no");
+            };
+        }
+
+        if (shouldShowQuestionForm || shouldShowAnswerBox) {
+            actionHint.classList.add("hidden");
+            return;
+        }
+
+        actionHint.classList.remove("hidden");
+
+        if (!data.started) {
+            actionHint.textContent = "等待朋友加入后，提问和回答区会出现在这里。";
+        } else if (data.winner) {
+            actionHint.textContent = "本局已结束，可以点击上方按钮查看记录或打开聊天。";
+        } else if (data.phase === "guess") {
+            actionHint.textContent = "现在是猜测阶段：请进行猜测或本轮不猜。";
+        } else {
+            actionHint.textContent = "现在还没有轮到你操作，请等待对方。";
+        }
+    }
+
+    function renderWrongCounts(data) {
+        const box = document.getElementById("wrongCountBox");
+
+        if (!box) {
+            return;
+        }
+
+        const wrongGuesses = data.wrong_guesses || {};
+        const myWrong = wrongGuesses[currentPlayer] || 0;
+
+        box.innerHTML = `
+            <div>猜测次数：<strong>${myWrong} / 3</strong></div>
+            <div class="wrong-count-hint">仅有 3 次机会哦！</div>
+        `;
+
+        if (myWrong >= 2) {
+            box.classList.add("danger");
+        } else {
+            box.classList.remove("danger");
+        }
+    }
+
+    function updateQuestionForm(data) {
+        const questionInput = document.getElementById("questionInput");
+        const questionButton = document.querySelector("#questionForm button");
+
+        canAskNow = data.can_ask;
+
+        questionInput.disabled = !canAskNow;
+        questionButton.disabled = !canAskNow;
+
+        if (!data.started) {
+            questionInput.placeholder = "等待另一位玩家加入后才能提问";
+        } else if (data.winner) {
+            questionInput.placeholder = "游戏已经结束";
+        } else if (canAskNow) {
+            questionInput.placeholder = "请只问是非题，eg.此人是否姓张？";
+        } else {
+            questionInput.placeholder = "还没有轮到你提问";
+        }
+    }
+
+    function updateGuessControls(data) {
+        const myGuess = data.round_guesses[currentPlayer];
+
+        alreadyDecidedThisRound = Boolean(myGuess);
+        canGuessNow = data.can_guess && !alreadyDecidedThisRound && !data.winner;
+
+        const guessButtons = document.querySelectorAll(".guess-button");
+
+        guessButtons.forEach(function(button) {
+            button.disabled = !canGuessNow;
+
+            if (data.winner) {
+                button.textContent = "游戏已结束";
+            } else if (!data.can_guess) {
+                button.textContent = "问答结束后可猜";
+            } else if (alreadyDecidedThisRound) {
+                button.textContent = "本轮已决定";
+            } else {
+                button.textContent = "我猜是你！";
+            }
+        });
+
+        const guessPhaseActions = document.getElementById("guessPhaseActions");
+        const skipGuessButton = document.getElementById("skipGuessButton");
+
+        if (data.can_guess && !data.winner) {
+            guessPhaseActions.classList.remove("hidden");
+        } else {
+            guessPhaseActions.classList.add("hidden");
+        }
+
+        skipGuessButton.disabled = alreadyDecidedThisRound || !data.can_guess || data.winner;
+    }
+
+    function renderQuestions(questions, data) {
+        const questionList = document.getElementById("questionList");
+        questionList.innerHTML = "";
+
+        if (!questions || questions.length === 0) {
+            questionList.innerHTML = '<p class="empty-text">目前还没有问题。</p>';
+            return;
+        }
+
+        let lastRound = null;
+
+        questions.forEach(function(q) {
+            if (q.round !== lastRound) {
+                lastRound = q.round;
+                const roundTitle = document.createElement("div");
+                roundTitle.className = "round-title";
+                roundTitle.textContent = `第 ${q.round} 轮`;
+                questionList.appendChild(roundTitle);
+            }
+
+            const isMine = q.from_player === currentPlayer;
+            const card = document.createElement("div");
+            card.className = "log-card question-card " + (isMine ? "my-question" : "opponent-question");
+
+            const tag = document.createElement("div");
+            tag.className = "question-tag";
+            tag.textContent = isMine ? "我发出的问题" : "对方发出的问题";
+            card.appendChild(tag);
+
+            // 问题和回答放在同一行
+            const rowDiv = document.createElement("div");
+            rowDiv.className = "question-with-answer";
+
+            const questionSpan = document.createElement("div");
+            questionSpan.className = "question-text";
+            questionSpan.textContent = q.text;
+
+            rowDiv.appendChild(questionSpan);
+
+            if (q.answer) {
+                const answerSpan = document.createElement("span");
+                answerSpan.className = "qa-answer-badge";
+                answerSpan.textContent = q.answer;
+                rowDiv.appendChild(answerSpan);
+            } else {
+                const waitingSpan = document.createElement("span");
+                waitingSpan.className = "qa-answer-badge waiting";
+                waitingSpan.textContent = "等待回答";
+                rowDiv.appendChild(waitingSpan);
+            }
+
+            card.appendChild(rowDiv);
+            questionList.appendChild(card);
+        });
+    }
+
+    function renderGuesses(guesses) {
+        const guessList = document.getElementById("guessList");
+        guessList.innerHTML = "";
+
+        if (!guesses || guesses.length === 0) {
+            guessList.innerHTML = '<p class="empty-text">目前还没有猜测。</p>';
+            return;
+        }
+
+        let lastRound = null;
+
+        guesses.forEach(function(g) {
+            if (g.round !== lastRound) {
+                lastRound = g.round;
+                const roundTitle = document.createElement("div");
+                roundTitle.className = "round-title";
+                roundTitle.textContent = `第 ${g.round} 轮`;
+                guessList.appendChild(roundTitle);
+            }
+
+            const card = document.createElement("div");
+            card.className = "log-card";
+            const who = g.player === currentPlayer ? "我" : playerName(g.player);
+
+            if (g.pending) {
+                card.innerHTML = `
+                    <p>${who} 已做出本轮选择。</p>
+                    <p class="waiting-text">双方都提交后，才会公开猜测内容和结果。</p>
+                `;
+            } else if (g.skipped) {
+                card.innerHTML = `<p>${who} 选择了：<strong>本轮不猜</strong></p>`;
+            } else {
+                // 猜测人物 + 结果（同一行）
+                const resultText = g.correct ? "正确" : "错误";
+                const resultClass = g.correct ? "correct" : "wrong";
+                card.innerHTML = `
+                    <p class="guess-with-result">
+                        <strong>${who} 猜了：${escapeHtml(g.name)}</strong>
+                        <span class="guess-result-badge ${resultClass}">${resultText}</span>
+                    </p>
+                `;
+            }
+
+            guessList.appendChild(card);
+        });
+    }
+
+    function renderChat(messages) {
+        const chatMessages = document.getElementById("chatMessages");
+
+        if (!chatMessages) {
+            return;
+        }
+
+        const wasNearBottom = chatMessages.scrollHeight - chatMessages.scrollTop - chatMessages.clientHeight < 90;
+        latestChatCount = messages.length;
+
+        if (isChatOpen) {
+            lastSeenChatCount = latestChatCount;
+        }
+
+        updateChatBadge();
+        chatMessages.innerHTML = "";
+
+        if (!messages || messages.length === 0) {
+            chatMessages.innerHTML = '<p class="empty-text">目前还没有聊天消息。</p>';
+            return;
+        }
+
+        messages.forEach(function(message) {
+            const isMine = message.player === currentPlayer;
+            const row = document.createElement("div");
+            row.className = "chat-message-row " + (isMine ? "my-chat-message" : "opponent-chat-message");
+
+            row.innerHTML = `
+                <div class="chat-message-meta">
+                    ${isMine ? "我" : playerName(message.player)} · ${escapeHtml(message.created_at || "")}
+                </div>
+                <div class="chat-message-bubble">
+                    ${escapeHtml(message.text)}
+                </div>
+            `;
+
+            chatMessages.appendChild(row);
+        });
+
+        if (isChatOpen && wasNearBottom) {
+            scrollChatToBottom();
+        }
+    }
+
+    async function answerQuestion(questionId, answer) {
+        try {
+            const response = await fetch(`/api/answer/${roomCode}/${questionId}`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    answer: answer
+                })
+            });
+
+            const data = await response.json();
+
+            if (!data.ok) {
+                alert(data.error || "回答失败");
+                return;
+            }
+
+            loadGameState();
+        } catch (error) {
+            alert("网络错误，请稍后再试。");
+        }
+    }
+
+    const questionForm = document.getElementById("questionForm");
+    const questionInput = document.getElementById("questionInput");
+
+    questionForm.addEventListener("submit", async function(event) {
+        event.preventDefault();
+
+        if (!canAskNow) {
+            alert("现在还没有轮到你提问。");
+            return;
+        }
+
+        const question = questionInput.value.trim();
+
+        if (!question) {
+            return;
+        }
+
+        try {
+            const response = await fetch(askUrl, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    question: question
+                })
+            });
+
+            const data = await response.json();
+
+            if (!data.ok) {
+                alert(data.error || "发送失败");
+                return;
+            }
+
+            questionInput.value = "";
+            loadGameState();
+        } catch (error) {
+            alert("网络错误，请稍后再试。");
+        }
+    });
+
+    document.getElementById("skipGuessButton").addEventListener("click", async function() {
+        if (!canGuessNow) {
+            alert("现在不能选择不猜。");
+            return;
+        }
+
+        try {
+            const response = await fetch(skipGuessUrl, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                }
+            });
+
+            const data = await response.json();
+
+            if (!data.ok) {
+                alert(data.error || "操作失败");
+                return;
+            }
+
+            loadGameState();
+        } catch (error) {
+            alert("网络错误，请稍后再试。");
+        }
+    });
+
+    document.getElementById("rematchButton").addEventListener("click", async function() {
+        try {
+            const response = await fetch(rematchUrl, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                }
+            });
+
+            const data = await response.json();
+
+            if (!data.ok) {
+                alert(data.error || "操作失败");
+                return;
+            }
+
+            if (data.restarted) {
+                window.location.reload();
+                return;
+            }
+
+            loadGameState();
+        } catch (error) {
+            alert("网络错误，请稍后再试。");
+        }
+    });
+
+    document.getElementById("chatForm").addEventListener("submit", async function(event) {
+        event.preventDefault();
+
+        const chatInput = document.getElementById("chatInput");
+        const message = chatInput.value.trim();
+
+        if (!message) {
+            return;
+        }
+
+        try {
+            const response = await fetch(chatUrl, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    message: message
+                })
+            });
+
+            const data = await response.json();
+
+            if (!data.ok) {
+                alert(data.error || "发送失败");
+                return;
+            }
+
+            chatInput.value = "";
+            loadGameState();
+            setTimeout(scrollChatToBottom, 0);
+        } catch (error) {
+            alert("网络错误，请稍后再试。");
+        }
+    });
+
+    function getWinnerMessage(data) {
+        const winner = data.winner;
+        const finishReason = data.finish_reason;
+
+        if (finishReason === "both_correct") {
+            return "🤝 平局！你们在同一轮都猜中了秘密人物。";
+        }
+
+        if (finishReason === "both_max_wrong") {
+            return "🤝 平局！双方都已经猜错 3 次，本局无人获胜。";
+        }
+
+        if (finishReason === "max_wrong") {
+            if (winner === currentPlayer) {
+                return "🎉 对方已经猜错 3 次，你自动获胜！";
+            }
+
+            return "😭 你已经猜错 3 次. . .";
+        }
+
+        if (finishReason === "correct_guess") {
+            if (winner === currentPlayer) {
+                return "🎉 你率先猜中了秘密人物，恭喜获胜！";
+            }
+
+            return "😭 " + playerName(winner) + " 率先猜中了秘密人物. . .";
+        }
+
+        // 旧数据兜底
+        if (winner === "draw") {
+            return "🤝 平局！";
+        }
+
+        if (winner === currentPlayer) {
+            return "🎉 你赢了！";
+        }
+
+        return "😭 你输了。";
+    }
+
+    function renderWinner(data) {
+        const winner = data.winner;
+        let winnerBox = document.querySelector(".winner-box");
+
+        if (!winner) {
+            if (winnerBox) {
+                winnerBox.remove();
+            }
+            return;
+        }
+
+        const message = getWinnerMessage(data);
+
+        if (!winnerBox) {
+            winnerBox = document.createElement("div");
+            winnerBox.className = "winner-box";
+
+            const stickyControls = document.getElementById("stickyGameControls");
+            const endRevealBox = document.getElementById("endRevealBox");
+            const page = document.querySelector(".page");
+
+            // 优先插在 sticky 流程区下面
+            if (stickyControls) {
+                stickyControls.insertAdjacentElement("afterend", winnerBox);
+            } else if (endRevealBox && endRevealBox.parentNode) {
+                endRevealBox.parentNode.insertBefore(winnerBox, endRevealBox);
+            } else if (page) {
+                page.prepend(winnerBox);
+            } else {
+                document.body.prepend(winnerBox);
+            }
+        }
+
+        winnerBox.textContent = message;
+    }
+
+    function renderEndReveal(data) {
+        const box = document.getElementById("endRevealBox");
+
+        if (!box) {
+            return;
+        }
+
+        if (!data.winner) {
+            box.classList.add("hidden");
+            return;
+        }
+
+        box.classList.remove("hidden");
+
+        const image = document.getElementById("mySecretImage");
+        const name = document.getElementById("mySecretName");
+
+        if (data.my_secret) {
+            image.src = cardBaseUrl + data.my_secret.image;
+            image.alt = data.my_secret.name;
+            image.classList.remove("hidden");
+            name.textContent = data.my_secret.name;
+        }
+
+        const rematchButton = document.getElementById("rematchButton");
+        const rematchStatusText = document.getElementById("rematchStatusText");
+
+        const ready = data.rematch_ready || {};
+        const opponent = getOpponentPlayer();
+
+        const iAmReady = Boolean(ready[currentPlayer]);
+        const opponentReady = Boolean(ready[opponent]);
+
+        if (iAmReady) {
+            rematchButton.disabled = true;
+            rematchButton.textContent = "已申请再来一局";
+        } else {
+            rematchButton.disabled = false;
+            rematchButton.textContent = "再来一局";
+        }
+
+        if (iAmReady && opponentReady) {
+            rematchStatusText.textContent = "双方都已准备，正在开启新一局……";
+        } else if (iAmReady) {
+            rematchStatusText.textContent = "你已点击再来一局，等待对方确认。";
+        } else if (opponentReady) {
+            rematchStatusText.textContent = "对方想再来一局，你也点击后会马上开启新局。";
+        } else {
+            rematchStatusText.textContent = "双方都点击再来一局后，会生成新的卡池和秘密人物。";
+        }
+    }
+
+    document.querySelectorAll(".guess-form").forEach(function(form) {
+        form.addEventListener("click", function(event) {
+            event.stopPropagation();
+        });
+    });
+
+    loadGameState();
+</script>
+
+</body>
+</html>

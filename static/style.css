@@ -1,0 +1,2581 @@
+* {
+    box-sizing: border-box;
+}
+
+:root {
+    --page-width: 1120px;
+    --section-bg: rgba(255, 255, 255, 0.93);
+    --text-main: #222;
+    --text-sub: #555;
+    --border-main: #e2e0dd;
+    --dark-btn: #2f2f2f;
+    --dark-btn-hover: #444;
+    --light-btn: #eeeeee;
+    --shadow-soft: 0 10px 30px rgba(0, 0, 0, 0.05);
+    --radius-section: 24px;
+    --radius-card: 22px;
+}
+
+html {
+    min-height: 100%;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: Arial, "Microsoft YaHei", sans-serif;
+    background: url("/static/bg.jpg") no-repeat center center fixed;
+    background-size: cover;
+    color: var(--text-main);
+}
+
+/* 页面整体 */
+.page {
+    width: min(var(--page-width), 94%);
+    margin: 0 auto;
+    padding: 24px 0 60px;
+}
+
+.center-page {
+    min-height: 100vh;
+    min-height: 100svh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+h1,
+h2 {
+    margin-top: 0;
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+h1 {
+    font-size: clamp(26px, 4vw, 38px);
+}
+
+h2 {
+    font-size: clamp(20px, 2.4vw, 26px);
+}
+
+p {
+    color: var(--text-sub);
+}
+
+.description {
+    line-height: 1.7;
+    max-width: 700px;
+}
+
+/* 顶部栏 */
+.top-bar {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    align-items: flex-start;
+    margin-bottom: 24px;
+}
+
+.small-link {
+    background: #ffffff;
+    padding: 10px 14px;
+    border-radius: 14px;
+    text-decoration: none;
+    color: #333;
+    border: 1px solid #ddd;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
+    white-space: nowrap;
+}
+
+/* 房间码复制按钮 */
+.room-code-line {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.copy-room-btn {
+    border: none;
+    border-radius: 999px;
+    padding: 7px 12px;
+    cursor: pointer;
+    background: #eeeeee;
+    color: #333;
+    font-size: 13px;
+    min-height: 34px;
+    transition: transform 0.08s ease, background 0.15s ease, opacity 0.15s ease;
+}
+
+.copy-room-btn:disabled {
+    opacity: 0.7;
+    cursor: default;
+}
+
+/* 按钮统一风格 */
+.main-btn,
+.danger-btn,
+.question-form button,
+.answer-form button,
+.guess-form button {
+    border: none;
+    border-radius: 999px;
+    padding: 10px 18px;
+    cursor: pointer;
+    font-size: 15px;
+    transition: transform 0.08s ease, background 0.15s ease, opacity 0.15s ease;
+    background: var(--dark-btn);
+    color: #ffffff;
+    min-height: 42px;
+}
+
+.main-btn {
+    font-size: 18px;
+    padding: 14px 26px;
+    background: #1f1f1f;
+}
+
+.danger-btn {
+    background: #777;
+    color: white;
+    margin-top: 20px;
+}
+
+button:active {
+    transform: scale(0.97);
+    opacity: 0.85;
+}
+
+button:disabled,
+.guess-button:disabled,
+#skipGuessButton:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* 只让电脑端触发 hover，避免手机点击后颜色卡住 */
+@media (hover: hover) and (pointer: fine) {
+    button:not(:disabled):hover {
+        background: var(--dark-btn-hover);
+    }
+
+    .person-card:hover {
+        border-color: #aaa;
+        box-shadow: 0 8px 22px rgba(0, 0, 0, 0.08);
+    }
+
+    .guess-form button:not(:disabled):hover {
+        background: #555;
+    }
+
+    .modal-cancel-btn:not(:disabled):hover {
+        background: #e0e0e0;
+    }
+
+    .modal-confirm-btn:not(:disabled):hover {
+        background: #444;
+    }
+
+    .guess-phase-actions button:not(:disabled):hover {
+        background: #dddddd;
+    }
+
+    .small-link:hover,
+    .copy-room-btn:not(:disabled):hover {
+        background: #f6f6f6;
+    }
+}
+
+/* 卡片式区块 */
+.link-box,
+.secret-section,
+.question-section,
+.log-section,
+.board-section {
+    background: var(--section-bg);
+    padding: 22px;
+    border-radius: var(--radius-section);
+    margin-bottom: 24px;
+    border: 1px solid var(--border-main);
+    box-shadow: var(--shadow-soft);
+}
+
+/* 卡池标题行：左边是说明，右上角是自己的猜错次数 */
+.board-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.board-title-text {
+    min-width: 0;
+}
+
+.board-title-text h2 {
+    margin-bottom: 10px;
+}
+
+.board-title-text p {
+    margin-bottom: 0;
+}
+
+/* 点击排除提示 */
+.eliminate-tip {
+    font-size: 20px;
+    font-weight: 800;
+    color: #111;
+    margin-top: 10px;
+    margin-bottom: 0;
+    line-height: 1.5;
+}
+
+.link-box a {
+    word-break: break-all;
+    color: #333;
+}
+
+/* 对方秘密人物卡 */
+.secret-card {
+    width: 160px;
+    background: #fafafa;
+    border-radius: var(--radius-card);
+    padding: 12px;
+    text-align: center;
+    border: 1px solid #ddd;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+    font-weight: 600;
+}
+
+.secret-card img {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    border-radius: 18px;
+    display: block;
+    margin-bottom: 8px;
+}
+
+/* 提问区 */
+.question-form {
+    display: flex;
+    gap: 10px;
+}
+
+.question-form input {
+    flex: 1;
+    border: 1px solid #d7d5d2;
+    background: #fbfbfb;
+    border-radius: 999px;
+    padding: 12px 16px;
+    font-size: 16px;
+    color: #222;
+    outline: none;
+    min-height: 44px;
+}
+
+.question-form input:focus {
+    border-color: #999;
+    background: #ffffff;
+}
+
+.question-form button {
+    background: var(--dark-btn);
+    color: white;
+    white-space: nowrap;
+}
+
+/* 人物卡池：电脑默认 6 列 */
+.cards-grid {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.person-card {
+    background: #ffffff;
+    border-radius: var(--radius-card);
+    padding: 10px;
+    text-align: center;
+    cursor: pointer;
+    position: relative;
+    border: 1px solid #e1dfdc;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.05);
+    transition: transform 0.08s ease, border 0.15s ease, box-shadow 0.15s ease;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+
+.person-card:active {
+    transform: scale(0.98);
+}
+
+.person-card img {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    border-radius: 18px;
+    display: block;
+    filter: none;
+    opacity: 1;
+}
+
+.person-name {
+    margin: 8px 0;
+    font-weight: 600;
+    color: #333;
+    line-height: 1.3;
+}
+
+/* 已排除状态 */
+.person-card.eliminated {
+    opacity: 1;
+    border: 1.5px solid #999;
+    background: #f7f7f7;
+}
+
+.person-card.eliminated img {
+    filter: none;
+    opacity: 1;
+}
+
+.person-card.eliminated::after {
+    content: "已排除";
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: rgba(255, 255, 255, 0.9);
+    color: #333;
+    border: 1px solid #cfcfcf;
+    border-radius: 999px;
+    padding: 4px 9px;
+    font-size: 12px;
+    font-weight: 600;
+    backdrop-filter: blur(4px);
+}
+
+/* 猜测按钮 */
+.guess-form button {
+    width: 100%;
+    background: #3a3a3a;
+    color: white;
+    font-size: 14px;
+    margin-top: 4px;
+}
+
+/* 问题记录 */
+.log-card {
+    background: #fbfbfb;
+    border-radius: 18px;
+    padding: 14px;
+    margin-bottom: 12px;
+    border: 1px solid #e0dedb;
+}
+
+.answer-form {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.answer-form button {
+    background: #333;
+    color: white;
+    min-width: 72px;
+}
+
+.answer-text {
+    color: #333;
+    font-weight: 600;
+}
+
+.waiting-text {
+    color: #888;
+}
+
+.correct-text {
+    color: #333;
+    font-weight: 600;
+}
+
+.wrong-text {
+    color: #777;
+    font-weight: 600;
+}
+
+.empty-text {
+    color: #888;
+}
+
+/* 胜利提示 */
+.winner-box {
+    background: #ffffff;
+    color: #222;
+    padding: 18px;
+    border-radius: 22px;
+    margin-bottom: 24px;
+    font-size: clamp(18px, 2.5vw, 22px);
+    font-weight: 600;
+    border: 1px solid #d8d6d2;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
+}
+
+/* 弹窗 */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(40, 40, 40, 0.28);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+    padding: 20px;
+}
+
+.modal-overlay.hidden {
+    display: none;
+}
+
+.modal-box {
+    width: min(360px, 92vw);
+    background: #ffffff;
+    border-radius: 24px;
+    padding: 24px;
+    border: 1px solid #dedbd7;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.12);
+    text-align: center;
+}
+
+.modal-box h2 {
+    margin-bottom: 12px;
+    font-size: 22px;
+    color: #222;
+}
+
+.modal-box p {
+    margin: 8px 0;
+    color: #444;
+}
+
+.modal-box strong {
+    color: #111;
+    font-size: 20px;
+}
+
+.modal-hint {
+    font-size: 14px;
+    color: #888 !important;
+}
+
+.modal-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.modal-buttons button {
+    flex: 1;
+    border: none;
+    border-radius: 999px;
+    padding: 11px 14px;
+    cursor: pointer;
+    font-size: 15px;
+    min-height: 44px;
+}
+
+.modal-cancel-btn {
+    background: #eeeeee;
+    color: #333;
+}
+
+.modal-confirm-btn {
+    background: var(--dark-btn);
+    color: white;
+}
+
+/* 首页 */
+.home-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    margin-top: 24px;
+    max-width: 420px;
+}
+
+.join-form {
+    display: flex;
+    gap: 10px;
+}
+
+.join-form input {
+    flex: 1;
+    border: 1px solid #d7d5d2;
+    background: #fbfbfb;
+    border-radius: 999px;
+    padding: 12px 16px;
+    font-size: 16px;
+    color: #222;
+    outline: none;
+    text-transform: uppercase;
+    min-height: 44px;
+}
+
+.join-form input:focus {
+    border-color: #999;
+    background: #ffffff;
+}
+
+.join-form button {
+    border: none;
+    border-radius: 999px;
+    padding: 10px 18px;
+    cursor: pointer;
+    font-size: 15px;
+    background: var(--dark-btn);
+    color: white;
+    min-height: 44px;
+    white-space: nowrap;
+}
+
+.error-box {
+    background: #ffffff;
+    color: #333;
+    border: 1px solid #d8d6d2;
+    border-radius: 18px;
+    padding: 14px 16px;
+    margin-top: 18px;
+    max-width: 420px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.04);
+}
+
+.waiting-room-box {
+    background: #ffffff;
+    color: #333;
+    border: 1px solid #d8d6d2;
+    border-radius: 22px;
+    padding: 18px;
+    margin-bottom: 24px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
+    line-height: 1.7;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* 当前轮次提示：所有端都 sticky */
+.turn-status-box {
+    position: sticky;
+    top: 8px;
+    z-index: 100;
+
+    background: rgba(255, 255, 255, 0.96);
+    color: #333;
+    border: 1px solid #d8d6d2;
+    border-radius: 18px;
+    padding: 10px 14px;
+    margin-bottom: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    font-weight: 600;
+    line-height: 1.4;
+    backdrop-filter: blur(6px);
+}
+
+.turn-action-card {
+    background: rgba(255, 255, 255, 0.94);
+    border: 1px solid #d8d6d2;
+    border-radius: 20px;
+    padding: 14px 16px;
+    margin-bottom: 18px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
+}
+
+.turn-action-area {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none;
+}
+
+.turn-status-text {
+    font-size: clamp(14px, 1.8vw, 18px);
+    font-weight: 800;
+    color: #222;
+    line-height: 1.35;
+}
+
+.turn-sub-status-text {
+    margin-top: 3px;
+    color: #666;
+    font-size: 13px;
+    line-height: 1.35;
+}
+
+@media (max-width: 600px) {
+    .turn-status-box {
+        top: 6px;
+        padding: 8px 10px;
+        border-radius: 16px;
+        margin-bottom: 10px;
+    }
+
+    .turn-status-header {
+        flex-direction: row;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .turn-status-text {
+        font-size: 14px;
+    }
+
+    .turn-sub-status-text {
+        font-size: 12px;
+        display: none;
+    }
+
+    .status-action-buttons {
+        width: auto;
+        min-width: 0;
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 6px;
+    }
+
+    .status-pill-button {
+        font-size: 12px;
+        padding: 7px 9px;
+        min-height: 32px;
+    }
+
+    .turn-action-card {
+        padding: 12px;
+        border-radius: 16px;
+        margin-bottom: 14px;
+    }
+}
+
+.round-title {
+    margin: 18px 0 10px;
+    font-weight: 700;
+    color: #222;
+    font-size: 15px;
+}
+
+.question-card {
+    position: relative;
+    max-width: 86%;
+    padding: 16px;
+}
+
+/* 我发出的问题：靠右 */
+.my-question {
+    margin-left: auto;
+    margin-right: 0;
+    background: #f1f1f1;
+    border: 1px solid #2f2f2f;
+    border-right: 7px solid #2f2f2f;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+}
+
+/* 对方发出的问题：靠左 */
+.opponent-question {
+    margin-left: 0;
+    margin-right: auto;
+    background: #ffffff;
+    border: 1px solid #d8d6d2;
+    border-left: 7px solid #b8b8b8;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.04);
+}
+
+.question-tag {
+    display: inline-block;
+    margin-bottom: 8px;
+    padding: 5px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+}
+
+.my-question .question-tag {
+    background: #2f2f2f;
+    color: #ffffff;
+}
+
+.opponent-question .question-tag {
+    background: #eeeeee;
+    color: #444;
+}
+
+.my-question p {
+    text-align: right;
+}
+
+.opponent-question p {
+    text-align: left;
+}
+
+.my-question .answer-text {
+    text-align: right;
+}
+
+.opponent-question .answer-text,
+.opponent-question .waiting-text {
+    text-align: left;
+}
+
+.guess-phase-actions {
+    margin: 14px 0 18px;
+}
+
+.guess-phase-actions button {
+    border: none;
+    border-radius: 999px;
+    padding: 10px 18px;
+    cursor: pointer;
+    font-size: 15px;
+    background: var(--light-btn);
+    color: #333;
+    min-height: 44px;
+}
+
+
+/* iPad 横屏 / 小电脑：仍然保持 6 列 */
+@media (max-width: 1180px) {
+    .page {
+        width: min(1040px, 94%);
+    }
+
+    .cards-grid {
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    .person-card {
+        padding: 8px;
+    }
+
+    .guess-form button {
+        font-size: 13px;
+        padding: 8px 5px;
+    }
+}
+
+/* iPad 竖屏：4 列 */
+@media (max-width: 900px) {
+    .page {
+        width: 94%;
+        padding-top: 20px;
+    }
+
+    .cards-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    .link-box,
+    .secret-section,
+    .question-section,
+    .log-section,
+    .board-section {
+        padding: 20px;
+    }
+
+    .question-card {
+        max-width: 92%;
+    }
+}
+
+/* 手机端：3 列 */
+@media (max-width: 600px) {
+    body {
+        background-attachment: scroll;
+        background-position: center top;
+    }
+
+    .page {
+        width: 94%;
+        padding: 16px 0 44px;
+    }
+
+    .top-bar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+        margin-bottom: 18px;
+    }
+
+    .small-link {
+        width: fit-content;
+    }
+
+    .link-box,
+    .secret-section,
+    .question-section,
+    .log-section,
+    .board-section {
+        padding: 16px;
+        border-radius: 20px;
+        margin-bottom: 18px;
+    }
+
+    .board-header-row {
+        gap: 10px;
+        align-items: flex-start;
+    }
+
+    .board-title-text h2 {
+        font-size: 18px;
+    }
+
+    .board-title-text p {
+        font-size: 13px;
+        line-height: 1.5;
+    }
+
+    .eliminate-tip {
+        font-size: 16px;
+        font-weight: 800;
+    }
+
+    .board-wrong-count {
+        font-size: 12px;
+        padding: 8px 10px;
+    }
+
+    .cards-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 9px;
+    }
+
+    .person-card {
+        padding: 7px;
+        border-radius: 16px;
+    }
+
+    .person-card img {
+        border-radius: 12px;
+    }
+
+    .person-name {
+        font-size: 13px;
+        margin: 6px 0;
+    }
+
+    .guess-form button {
+        font-size: 11px;
+        padding: 7px 3px;
+        min-height: 36px;
+    }
+
+    .person-card.eliminated::after {
+        top: 7px;
+        right: 7px;
+        font-size: 10px;
+        padding: 3px 6px;
+    }
+
+    .question-form {
+        flex-direction: column;
+    }
+
+    .question-form input,
+    .question-form button {
+        width: 100%;
+    }
+
+    .secret-card {
+        width: 140px;
+        margin: 0 auto;
+    }
+
+    .join-form {
+        flex-direction: column;
+    }
+
+    .join-form input,
+    .join-form button {
+        width: 100%;
+    }
+
+    .home-actions {
+        max-width: 100%;
+    }
+
+    .turn-status-box,
+    .waiting-room-box,
+    .winner-box {
+        border-radius: 20px;
+        padding: 15px 16px;
+        margin-bottom: 18px;
+    }
+
+    .turn-status-box {
+        top: 8px;
+    }
+
+    .question-card {
+        max-width: 100%;
+        padding: 14px;
+    }
+
+    .my-question {
+        margin-left: 14px;
+    }
+
+    .opponent-question {
+        margin-right: 14px;
+    }
+
+    .modal-box {
+        width: 94vw;
+        padding: 20px;
+        border-radius: 22px;
+    }
+
+    .modal-buttons {
+        flex-direction: column;
+    }
+
+    .answer-form {
+        gap: 8px;
+    }
+
+    .answer-form button {
+        flex: 1;
+        min-width: 0;
+    }
+}
+
+/* 很窄的手机，比如旧款 iPhone */
+@media (max-width: 380px) {
+    .page {
+        width: 96%;
+    }
+
+    .cards-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 7px;
+    }
+
+    .person-card {
+        padding: 6px;
+    }
+
+    .person-name {
+        font-size: 12px;
+    }
+
+    .guess-form button {
+        font-size: 10px;
+        padding: 7px 2px;
+    }
+
+    .link-box,
+    .secret-section,
+    .question-section,
+    .log-section,
+    .board-section {
+        padding: 14px;
+    }
+}
+
+.wrong-count-box {
+    background: #ffffff;
+    color: #333;
+    border: 1px solid #d8d6d2;
+    border-radius: 999px;
+    padding: 10px 16px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.05);
+    font-weight: 600;
+    line-height: 1.4;
+    white-space: nowrap;
+}
+
+.board-wrong-count {
+    margin-left: auto;
+    margin-top: 2px;
+}
+
+.wrong-count-box strong {
+    color: #111;
+}
+
+.wrong-count-hint {
+    margin-top: 6px;
+    color: #666;
+    font-size: 14px;
+    font-weight: 400;
+}
+
+.wrong-count-box.danger {
+    border-color: #777;
+    background: #f7f7f7;
+}
+
+.restart-request-box {
+    background: #ffffff;
+    color: #333;
+    border: 1px solid #d8d6d2;
+    border-radius: 22px;
+    padding: 16px 18px;
+    margin-bottom: 24px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.05);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.restart-request-box strong {
+    color: #111;
+}
+
+.restart-request-status {
+    margin: 6px 0 0;
+    color: #666;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.restart-request-button {
+    border: none;
+    border-radius: 999px;
+    padding: 11px 20px;
+    cursor: pointer;
+    font-size: 15px;
+    background: #2f2f2f;
+    color: white;
+    min-height: 44px;
+    white-space: nowrap;
+}
+
+.restart-request-button:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.end-reveal-box {
+    background: rgba(255,255,255,0.94);
+    color: #222;
+    border: 1px solid #d8d6d2;
+    border-radius: 24px;
+    padding: 22px;
+    margin-bottom: 24px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+    text-align: center;
+}
+
+.end-reveal-box h2 {
+    margin-bottom: 10px;
+}
+
+.end-secret-card {
+    margin: 14px auto 18px;
+}
+
+.rematch-button {
+    border: none;
+    border-radius: 999px;
+    padding: 12px 24px;
+    cursor: pointer;
+    font-size: 16px;
+    background: #2f2f2f;
+    color: white;
+    min-height: 44px;
+}
+
+.rematch-button:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+}
+
+.rematch-status-text {
+    margin-top: 12px;
+    color: #666;
+    font-size: 14px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .rematch-button:not(:disabled):hover,
+    .restart-request-button:not(:disabled):hover {
+        background: #444;
+    }
+}
+
+@media (max-width: 600px) {
+    .restart-request-box,
+    .end-reveal-box {
+        border-radius: 20px;
+        padding: 15px 16px;
+        margin-bottom: 18px;
+    }
+
+    .restart-request-box {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .rematch-button,
+    .restart-request-button {
+        width: 100%;
+    }
+}
+/* ===== 2026 修改版：sticky 流程框、记录浮窗、房间聊天 ===== */
+.turn-status-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.turn-status-main {
+    min-width: 0;
+    flex: 1;
+}
+
+.turn-status-text {
+    font-size: clamp(16px, 2.2vw, 20px);
+    font-weight: 800;
+    color: #222;
+    line-height: 1.45;
+}
+
+.turn-sub-status-text {
+    margin-top: 5px;
+    color: #666;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.status-action-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.status-pill-button {
+    position: relative;
+    border: none;
+    border-radius: 999px;
+    padding: 9px 14px;
+    cursor: pointer;
+    font-size: 14px;
+    background: #eeeeee;
+    color: #333;
+    min-height: 38px;
+    white-space: nowrap;
+    transition: transform 0.08s ease, background 0.15s ease, opacity 0.15s ease;
+}
+
+.chat-open-button {
+    padding-right: 17px;
+}
+
+.chat-unread-badge {
+    position: absolute;
+    top: -7px;
+    right: -5px;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: #2f2f2f;
+    color: #fff;
+    font-size: 11px;
+    line-height: 20px;
+    text-align: center;
+    font-weight: 700;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.12);
+}
+
+.turn-action-area {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid #e5e2de;
+}
+
+.compact-question-form {
+    width: 100%;
+}
+
+.turn-answer-box {
+    background: #fbfbfb;
+    border: 1px solid #dedbd7;
+    border-radius: 18px;
+    padding: 14px;
+}
+
+.answer-preview-label {
+    font-size: 13px;
+    color: #666;
+    margin-bottom: 8px;
+    font-weight: 600;
+}
+
+.answer-question-preview {
+    background: #ffffff;
+    border: 1px solid #e3e0dc;
+    border-radius: 16px;
+    padding: 12px 14px;
+    color: #333;
+    line-height: 1.6;
+    margin-bottom: 12px;
+    word-break: break-word;
+}
+
+.inline-answer-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.inline-answer-buttons button {
+    flex: 1;
+    min-width: 96px;
+}
+
+.turn-action-hint {
+    background: #fbfbfb;
+    border: 1px dashed #d8d6d2;
+    color: #666;
+    border-radius: 16px;
+    padding: 12px 14px;
+    line-height: 1.5;
+    font-size: 14px;
+}
+
+.current-round-qa-box {
+    margin-top: 12px;
+    background: #ffffff;
+    border: 1px solid #dedbd7;
+    border-radius: 18px;
+    padding: 13px 14px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.04);
+}
+
+.current-round-qa-title {
+    font-size: 13px;
+    color: #666;
+    font-weight: 800;
+    margin-bottom: 10px;
+}
+
+.current-round-qa-list {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+}
+
+.current-round-qa-item {
+    background: #fbfbfb;
+    border: 1px solid #e4e1dd;
+    border-radius: 15px;
+    padding: 10px 12px;
+    line-height: 1.5;
+}
+
+.my-current-qa {
+    border-right: 5px solid #2f2f2f;
+}
+
+.opponent-current-qa {
+    border-left: 5px solid #b8b8b8;
+}
+
+.current-round-question-line {
+    color: #333;
+    word-break: break-word;
+}
+
+.current-round-qa-label {
+    font-weight: 800;
+    color: #222;
+}
+
+.current-round-answer-line {
+    margin-top: 6px;
+    font-size: 14px;
+}
+
+.current-round-answer-line.answered {
+    color: #222;
+}
+
+.current-round-answer-line.waiting {
+    color: #888;
+}
+
+.current-round-answer-line strong {
+    display: inline-block;
+    margin-left: 4px;
+    padding: 2px 10px;
+    border-radius: 999px;
+    background: #2f2f2f;
+    color: #ffffff;
+    font-size: 13px;
+}
+
+.floating-panel-overlay {
+    position: fixed;
+    right: 22px;
+    bottom: 22px;
+    z-index: 1200;
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-end;
+    width: min(780px, calc(100vw - 44px));
+    max-width: calc(100vw - 44px);
+    padding: 0;
+    background: transparent;
+    backdrop-filter: none;
+    pointer-events: none;
+}
+
+.floating-panel-overlay.hidden {
+    display: none;
+}
+
+.floating-panel {
+    width: 100%;
+    max-height: min(76vh, 720px);
+    background: rgba(255,255,255,0.98);
+    border: 1px solid #dedbd7;
+    border-radius: 26px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.16);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    pointer-events: auto;
+}
+
+.chat-panel {
+    width: min(520px, calc(100vw - 44px));
+}
+
+.panel-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 20px 20px 12px;
+    border-bottom: 1px solid #ece9e5;
+}
+
+.panel-header h2 {
+    margin-bottom: 6px;
+}
+
+.panel-header p {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.panel-close-btn {
+    border: none;
+    border-radius: 999px;
+    width: 38px;
+    height: 38px;
+    min-width: 38px;
+    cursor: pointer;
+    background: #eeeeee;
+    color: #333;
+    font-size: 26px;
+    line-height: 1;
+}
+
+.panel-tabs {
+    display: flex;
+    gap: 10px;
+    padding: 14px 20px 0;
+}
+
+.panel-tab {
+    flex: 1;
+    border: none;
+    border-radius: 999px;
+    padding: 10px 16px;
+    cursor: pointer;
+    background: #eeeeee;
+    color: #333;
+    font-size: 15px;
+    min-height: 42px;
+}
+
+.panel-tab.active {
+    background: #2f2f2f;
+    color: #ffffff;
+}
+
+.panel-content {
+    padding: 16px 20px 20px;
+    overflow-y: auto;
+    max-height: 58vh;
+}
+
+.records-panel .question-card {
+    max-width: 92%;
+}
+
+.chat-messages {
+    padding: 16px 20px;
+    overflow-y: auto;
+    min-height: 260px;
+    max-height: min(54vh, 520px);
+    background: #fafafa;
+}
+
+.chat-message-row {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 12px;
+}
+
+.my-chat-message {
+    align-items: flex-end;
+}
+
+.opponent-chat-message {
+    align-items: flex-start;
+}
+
+.chat-message-meta {
+    font-size: 12px;
+    color: #888;
+    margin-bottom: 4px;
+    padding: 0 4px;
+}
+
+.chat-message-bubble {
+    max-width: min(78%, 360px);
+    padding: 10px 13px;
+    border-radius: 17px;
+    line-height: 1.5;
+    word-break: break-word;
+    border: 1px solid #dedbd7;
+}
+
+.my-chat-message .chat-message-bubble {
+    background: #2f2f2f;
+    color: #ffffff;
+    border-color: #2f2f2f;
+    border-bottom-right-radius: 5px;
+}
+
+.opponent-chat-message .chat-message-bubble {
+    background: #ffffff;
+    color: #333;
+    border-bottom-left-radius: 5px;
+}
+
+.chat-form {
+    display: flex;
+    gap: 10px;
+    padding: 14px 20px 20px;
+    border-top: 1px solid #ece9e5;
+    background: #ffffff;
+}
+
+.chat-form input {
+    flex: 1;
+    border: 1px solid #d7d5d2;
+    background: #fbfbfb;
+    border-radius: 999px;
+    padding: 12px 16px;
+    font-size: 16px;
+    color: #222;
+    outline: none;
+    min-height: 44px;
+}
+
+.chat-form input:focus {
+    border-color: #999;
+    background: #ffffff;
+}
+
+.chat-form button {
+    border: none;
+    border-radius: 999px;
+    padding: 10px 18px;
+    cursor: pointer;
+    font-size: 15px;
+    background: var(--dark-btn);
+    color: white;
+    min-height: 44px;
+    white-space: nowrap;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .status-pill-button:not(:disabled):hover,
+    .panel-close-btn:not(:disabled):hover,
+    .panel-tab:not(.active):not(:disabled):hover {
+        background: #dddddd;
+    }
+
+    .panel-tab.active:not(:disabled):hover,
+    .chat-form button:not(:disabled):hover,
+    .inline-answer-buttons button:not(:disabled):hover {
+        background: #444;
+    }
+}
+
+/* iPad 及较窄屏幕 */
+@media (max-width: 900px) {
+    .turn-status-header {
+        align-items: stretch;
+    }
+
+    .status-action-buttons {
+        min-width: 210px;
+    }
+
+    .floating-panel-overlay {
+        right: 18px;
+        bottom: 18px;
+        width: min(720px, calc(100vw - 36px));
+        max-width: calc(100vw - 36px);
+    }
+
+    .floating-panel {
+        max-height: 78vh;
+    }
+
+    .chat-panel {
+        width: min(520px, calc(100vw - 36px));
+    }
+
+    .panel-content {
+        max-height: 58vh;
+    }
+}
+
+/* 手机端 */
+@media (max-width: 600px) {
+    .turn-status-header {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .status-action-buttons {
+        width: 100%;
+        min-width: 0;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .status-pill-button {
+        width: 100%;
+        white-space: normal;
+        line-height: 1.3;
+        padding: 9px 10px;
+    }
+
+    .turn-action-area {
+        margin-top: 12px;
+        padding-top: 12px;
+    }
+
+    .compact-question-form {
+        flex-direction: column;
+    }
+
+    .compact-question-form input,
+    .compact-question-form button {
+        width: 100%;
+    }
+
+    .inline-answer-buttons {
+        gap: 8px;
+    }
+
+    .floating-panel-overlay {
+        right: 10px;
+        bottom: 10px;
+        width: calc(100vw - 20px);
+        max-width: calc(100vw - 20px);
+    }
+
+    .floating-panel {
+        width: 100%;
+        max-height: 68vh;
+        border-radius: 22px;
+    }
+
+    .chat-panel {
+        width: 100%;
+    }
+
+    .panel-header {
+        padding: 18px 16px 12px;
+    }
+
+    .panel-tabs {
+        padding: 12px 16px 0;
+        gap: 8px;
+    }
+
+    .panel-tab {
+        font-size: 14px;
+        padding: 9px 10px;
+    }
+
+    .panel-content {
+        padding: 14px 16px 18px;
+        max-height: 62vh;
+    }
+
+    .records-panel .question-card {
+        max-width: 100%;
+    }
+
+    .chat-messages {
+        padding: 14px 16px;
+        min-height: 220px;
+        max-height: 42vh;
+    }
+
+    .chat-message-bubble {
+        max-width: 84%;
+    }
+
+    .chat-form {
+        padding: 12px 16px 18px;
+        gap: 8px;
+    }
+
+    .chat-form input {
+        min-width: 0;
+        font-size: 15px;
+    }
+
+    .chat-form button {
+        padding: 10px 14px;
+    }
+}
+
+@media (max-width: 380px) {
+    .status-action-buttons {
+        grid-template-columns: 1fr;
+    }
+
+    .chat-form {
+        flex-direction: column;
+    }
+
+    .chat-form input,
+    .chat-form button {
+        width: 100%;
+    }
+}
+
+
+/* ===== 最终修正版：只让状态小条 sticky，提问/回答区不 sticky ===== */
+/* 说明：
+   1. player.html 里需要把 #turnActionArea 移到 #turnStatusBox 外面，并加上 turn-action-card class。
+   2. 这段放在 CSS 最底部，用来覆盖前面重复的旧样式。
+*/
+
+.turn-status-box {
+    position: sticky;
+    top: 8px;
+    z-index: 100;
+    padding: 8px 12px;
+    margin-bottom: 10px;
+    border-radius: 16px;
+    line-height: 1.35;
+}
+
+.turn-status-header {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.turn-status-main {
+    min-width: 0;
+    flex: 1;
+}
+
+.turn-status-text {
+    font-size: clamp(14px, 1.6vw, 17px);
+    line-height: 1.3;
+}
+
+.turn-sub-status-text {
+    margin-top: 2px;
+    font-size: 12px;
+    line-height: 1.3;
+}
+
+.status-action-buttons {
+    width: auto;
+    min-width: 0;
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 6px;
+    justify-content: flex-end;
+}
+
+.status-pill-button {
+    width: auto;
+    padding: 7px 11px;
+    min-height: 32px;
+    font-size: 13px;
+    white-space: nowrap;
+}
+
+/* 提问/回答区：普通卡片，不再跟着 sticky */
+.turn-action-area.turn-action-card {
+    margin-top: 0;
+    padding: 12px 14px;
+    border-top: none;
+    background: rgba(255, 255, 255, 0.94);
+    border: 1px solid #d8d6d2;
+    border-radius: 18px;
+    margin-bottom: 16px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
+}
+
+/* iPad 端：保持状态栏紧凑 */
+@media (max-width: 900px) {
+    .turn-status-box {
+        top: 6px;
+        padding: 8px 10px;
+    }
+
+    .turn-status-header {
+        align-items: center;
+    }
+
+    .status-action-buttons {
+        min-width: 0;
+    }
+
+    .turn-action-area.turn-action-card {
+        padding: 12px;
+        margin-bottom: 14px;
+    }
+}
+
+/* 手机端：sticky 变成非常薄的一行 */
+@media (max-width: 600px) {
+    .turn-status-box {
+        top: 4px;
+        padding: 7px 8px;
+        margin-bottom: 8px;
+        border-radius: 14px;
+    }
+
+    .turn-status-header {
+        flex-direction: row;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .turn-status-main {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .turn-status-text {
+        font-size: 13px;
+        line-height: 1.25;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .turn-sub-status-text {
+        display: none;
+    }
+
+    .status-action-buttons {
+        width: auto;
+        min-width: 0;
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 5px;
+    }
+
+    .status-pill-button {
+        width: auto;
+        flex: 0 0 auto;
+        padding: 6px 8px;
+        min-height: 30px;
+        font-size: 12px;
+        line-height: 1.2;
+        white-space: nowrap;
+    }
+
+    .chat-open-button {
+        padding-right: 10px;
+    }
+
+    .turn-action-area.turn-action-card {
+        padding: 10px;
+        border-radius: 14px;
+        margin-bottom: 12px;
+    }
+
+    .turn-answer-box,
+    .current-round-qa-box,
+    .turn-action-hint {
+        padding: 10px;
+        border-radius: 13px;
+    }
+}
+
+@media (max-width: 380px) {
+    .status-pill-button {
+        padding: 6px 7px;
+        font-size: 11px;
+    }
+}
+
+
+/* ===== 手感优化版：更小的流程提示、问答区、记录/聊天浮窗 ===== */
+/* 放在 CSS 文件最底部，用来覆盖前面的旧样式。 */
+
+/* 1. 顶部流程提示条：电脑/iPad/手机都压缩成轻量状态栏 */
+.turn-status-box {
+    top: 6px;
+    z-index: 300;
+    padding: 6px 10px;
+    margin-bottom: 8px;
+    border-radius: 14px;
+    line-height: 1.25;
+    box-shadow: 0 5px 18px rgba(0, 0, 0, 0.08);
+    backdrop-filter: blur(8px);
+}
+
+.turn-status-header {
+    align-items: center;
+    gap: 10px;
+}
+
+.turn-status-text {
+    font-size: clamp(13px, 1.35vw, 16px);
+    line-height: 1.25;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.turn-sub-status-text {
+    margin-top: 1px;
+    font-size: 11px;
+    line-height: 1.25;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.status-action-buttons {
+    gap: 5px;
+    flex-shrink: 0;
+}
+
+.status-pill-button {
+    padding: 5px 9px;
+    min-height: 28px;
+    font-size: 12px;
+    border-radius: 999px;
+}
+
+.chat-unread-badge {
+    top: -6px;
+    right: -4px;
+    min-width: 18px;
+    height: 18px;
+    font-size: 10px;
+    line-height: 18px;
+}
+
+/* 2. 问答操作区：从“大卡片”改成轻量小条 */
+.turn-action-area.turn-action-card {
+    width: min(760px, 100%);
+    padding: 8px 10px;
+    margin: 0 0 10px;
+    border-radius: 14px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.045);
+}
+
+.turn-action-area.turn-action-card.is-idle {
+    padding: 5px 8px;
+    background: rgba(255, 255, 255, 0.76);
+    box-shadow: none;
+}
+
+.turn-action-area.turn-action-card.is-idle .turn-action-hint {
+    padding: 5px 8px;
+    border: none;
+    background: transparent;
+    font-size: 12px;
+    color: #777;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.compact-question-form {
+    gap: 7px;
+}
+
+.compact-question-form input,
+.chat-form input {
+    min-height: 36px;
+    padding: 8px 12px;
+    font-size: 14px;
+}
+
+.compact-question-form button,
+.inline-answer-buttons button,
+.chat-form button,
+#skipGuessButton {
+    min-height: 36px;
+    padding: 7px 13px;
+    font-size: 13px;
+}
+
+.turn-answer-box {
+    padding: 9px;
+    border-radius: 13px;
+}
+
+.answer-preview-label {
+    margin-bottom: 5px;
+    font-size: 12px;
+}
+
+.answer-question-preview {
+    padding: 8px 10px;
+    margin-bottom: 8px;
+    border-radius: 12px;
+    line-height: 1.45;
+    font-size: 14px;
+}
+
+.inline-answer-buttons {
+    gap: 7px;
+}
+
+.turn-action-hint {
+    padding: 8px 10px;
+    border-radius: 12px;
+    font-size: 13px;
+    line-height: 1.35;
+}
+
+.current-round-qa-box {
+    margin-top: 8px;
+    padding: 8px 9px;
+    border-radius: 13px;
+    max-height: 116px;
+    overflow-y: auto;
+    box-shadow: none;
+}
+
+.current-round-qa-title {
+    margin-bottom: 6px;
+    font-size: 12px;
+}
+
+.current-round-qa-list {
+    gap: 6px;
+}
+
+.current-round-qa-item {
+    padding: 7px 9px;
+    border-radius: 11px;
+    font-size: 13px;
+    line-height: 1.35;
+}
+
+.current-round-answer-line {
+    margin-top: 4px;
+    font-size: 12px;
+}
+
+.current-round-answer-line strong {
+    padding: 1px 8px;
+    font-size: 12px;
+}
+
+/* 3. 猜测阶段按钮别占太高 */
+.guess-phase-actions {
+    margin: 8px 0 12px;
+}
+
+/* 4. 记录 / 聊天浮窗：电脑端从大窗口改成右下角小面板 */
+.floating-panel-overlay {
+    right: 18px;
+    bottom: 18px;
+    width: min(540px, calc(100vw - 36px));
+    max-width: calc(100vw - 36px);
+}
+
+.floating-panel {
+    max-height: min(58vh, 520px);
+    border-radius: 20px;
+    box-shadow: 0 14px 44px rgba(0, 0, 0, 0.15);
+}
+
+.records-panel {
+    width: min(540px, calc(100vw - 36px));
+}
+
+.chat-panel {
+    width: min(400px, calc(100vw - 36px));
+}
+
+.panel-header {
+    padding: 12px 14px 8px;
+    gap: 10px;
+}
+
+.panel-header h2 {
+    margin-bottom: 3px;
+    font-size: 18px;
+}
+
+.panel-header p {
+    font-size: 12px;
+    line-height: 1.35;
+}
+
+.panel-close-btn {
+    width: 30px;
+    height: 30px;
+    min-width: 30px;
+    font-size: 20px;
+}
+
+.panel-tabs {
+    padding: 9px 14px 0;
+    gap: 7px;
+}
+
+.panel-tab {
+    min-height: 34px;
+    padding: 7px 10px;
+    font-size: 13px;
+}
+
+.panel-content {
+    padding: 10px 14px 14px;
+    max-height: 41vh;
+}
+
+.log-card {
+    padding: 10px;
+    margin-bottom: 8px;
+    border-radius: 13px;
+    font-size: 13px;
+}
+
+.round-title {
+    margin: 12px 0 7px;
+    font-size: 13px;
+}
+
+.question-tag {
+    margin-bottom: 5px;
+    padding: 3px 9px;
+    font-size: 11px;
+}
+
+.chat-messages {
+    min-height: 180px;
+    max-height: 36vh;
+    padding: 10px 14px;
+}
+
+.chat-message-row {
+    margin-bottom: 8px;
+}
+
+.chat-message-meta {
+    font-size: 11px;
+}
+
+.chat-message-bubble {
+    padding: 8px 10px;
+    border-radius: 13px;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.chat-form {
+    padding: 10px 14px 12px;
+    gap: 7px;
+}
+
+/* 5. iPad：面板不要挡住整屏，状态栏保持一行 */
+@media (max-width: 900px) {
+    .turn-status-box {
+        top: 5px;
+        padding: 6px 8px;
+    }
+
+    .turn-sub-status-text {
+        display: none;
+    }
+
+    .turn-action-area.turn-action-card {
+        width: 100%;
+        padding: 8px;
+        margin-bottom: 9px;
+    }
+
+    .current-round-qa-box {
+        max-height: 100px;
+    }
+
+    .floating-panel-overlay {
+        right: 14px;
+        bottom: 14px;
+        width: min(500px, calc(100vw - 28px));
+        max-width: calc(100vw - 28px);
+    }
+
+    .floating-panel {
+        max-height: 54vh;
+    }
+
+    .records-panel,
+    .chat-panel {
+        width: min(500px, calc(100vw - 28px));
+    }
+
+    .panel-content {
+        max-height: 38vh;
+    }
+
+    .chat-messages {
+        max-height: 33vh;
+    }
+}
+
+/* 6. 手机：浮窗改成底部抽屉，不再占满屏幕；顶部状态栏极薄 */
+@media (max-width: 600px) {
+    .turn-status-box {
+        top: 3px;
+        padding: 5px 6px;
+        margin-bottom: 6px;
+        border-radius: 12px;
+    }
+
+    .turn-status-header {
+        gap: 5px;
+    }
+
+    .turn-status-text {
+        font-size: 12px;
+    }
+
+    .status-action-buttons {
+        gap: 4px;
+    }
+
+    .status-pill-button {
+        min-height: 26px;
+        padding: 5px 6px;
+        font-size: 11px;
+    }
+
+    .turn-action-area.turn-action-card {
+        padding: 7px;
+        margin-bottom: 8px;
+        border-radius: 12px;
+    }
+
+    .turn-action-area.turn-action-card.is-idle {
+        padding: 4px 6px;
+    }
+
+    .turn-action-area.turn-action-card.is-idle .turn-action-hint {
+        padding: 3px 4px;
+        font-size: 11px;
+    }
+
+    .compact-question-form {
+        flex-direction: row;
+        gap: 5px;
+    }
+
+    .compact-question-form input {
+        min-width: 0;
+        min-height: 32px;
+        padding: 7px 9px;
+        font-size: 13px;
+    }
+
+    .compact-question-form button,
+    .inline-answer-buttons button,
+    #skipGuessButton {
+        min-height: 32px;
+        padding: 6px 10px;
+        font-size: 12px;
+    }
+
+    .answer-question-preview {
+        padding: 7px 8px;
+        font-size: 13px;
+    }
+
+    .current-round-qa-box {
+        max-height: 82px;
+        padding: 7px;
+    }
+
+    .current-round-qa-item {
+        padding: 6px 7px;
+        font-size: 12px;
+    }
+
+    .floating-panel-overlay {
+        left: 8px;
+        right: 8px;
+        bottom: 8px;
+        width: auto;
+        max-width: none;
+        align-items: flex-end;
+        justify-content: center;
+    }
+
+    .floating-panel {
+        width: 100%;
+        max-height: 52vh;
+        border-radius: 18px;
+    }
+
+    .records-panel,
+    .chat-panel {
+        width: 100%;
+    }
+
+    .panel-header {
+        padding: 10px 12px 7px;
+    }
+
+    .panel-header h2 {
+        font-size: 16px;
+    }
+
+    .panel-header p {
+        display: none;
+    }
+
+    .panel-close-btn {
+        width: 28px;
+        height: 28px;
+        min-width: 28px;
+        font-size: 18px;
+    }
+
+    .panel-tabs {
+        padding: 8px 12px 0;
+    }
+
+    .panel-tab {
+        min-height: 31px;
+        padding: 6px 8px;
+        font-size: 12px;
+    }
+
+    .panel-content {
+        padding: 9px 12px 12px;
+        max-height: 36vh;
+    }
+
+    .chat-messages {
+        min-height: 150px;
+        max-height: 32vh;
+        padding: 9px 12px;
+    }
+
+    .chat-form {
+        flex-direction: row;
+        padding: 9px 12px 11px;
+    }
+
+    .chat-form input {
+        min-width: 0;
+        min-height: 34px;
+        padding: 7px 10px;
+        font-size: 13px;
+    }
+
+    .chat-form button {
+        min-height: 34px;
+        padding: 7px 10px;
+        font-size: 12px;
+        width: auto;
+    }
+}
+
+@media (max-width: 380px) {
+    .status-pill-button {
+        padding: 5px 5px;
+        font-size: 10px;
+    }
+
+    .compact-question-form {
+        flex-direction: column;
+    }
+
+    .compact-question-form input,
+    .compact-question-form button {
+        width: 100%;
+    }
+}
+
+
+/* ===== 2026-06-08 二次手感修正：sticky 组合区、手机输入框、猜测次数居中 ===== */
+
+/* 把流程条 + 问答区作为一个整体 sticky，避免两个区域分开占位。 */
+.sticky-game-controls {
+    position: sticky;
+    top: 6px;
+    z-index: 360;
+    margin-bottom: 12px;
+}
+
+.sticky-game-controls .turn-status-box {
+    position: relative;
+    top: auto;
+    margin-bottom: 6px;
+}
+
+.sticky-game-controls .turn-action-area.turn-action-card {
+    margin-bottom: 0;
+}
+
+/* 猜测次数小椭圆内文字居中。 */
+.wrong-count-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    min-width: 158px;
+}
+
+.wrong-count-box > div {
+    width: 100%;
+    text-align: center;
+}
+
+.board-right-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+
+/* 输入问题这一行：输入框占主要空间，发送按钮保持小尺寸。 */
+.compact-question-form {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+}
+
+.compact-question-form input {
+    flex: 1 1 auto;
+    width: auto !important;
+    min-width: 0;
+}
+
+.compact-question-form button {
+    flex: 0 0 auto;
+    width: auto !important;
+    white-space: nowrap;
+}
+
+/* 当前轮小问答只显示自己问的问题，所以边框统一为“我的问题”的样式。 */
+.current-round-qa-item {
+    border-left: 1px solid #e4e1dd;
+    border-right: 5px solid #2f2f2f;
+}
+
+.opponent-current-qa {
+    border-left: 1px solid #e4e1dd;
+    border-right: 5px solid #2f2f2f;
+}
+
+@media (max-width: 900px) {
+    .sticky-game-controls {
+        top: 5px;
+        margin-bottom: 10px;
+    }
+
+    .compact-question-form {
+        gap: 7px;
+    }
+
+    .compact-question-form input {
+        min-height: 34px;
+        padding: 7px 10px;
+        font-size: 13px;
+    }
+
+    .compact-question-form button {
+        min-height: 34px;
+        padding: 7px 12px;
+        font-size: 13px;
+    }
+}
+
+@media (max-width: 600px) {
+    .sticky-game-controls {
+        top: 4px;
+        margin-bottom: 9px;
+    }
+
+    .sticky-game-controls .turn-status-box {
+        margin-bottom: 5px;
+    }
+
+    .compact-question-form {
+        flex-direction: row !important;
+        gap: 6px;
+    }
+
+    .compact-question-form input {
+        flex: 1 1 auto;
+        width: auto !important;
+        min-width: 0;
+        min-height: 32px;
+        padding: 6px 9px;
+        font-size: 13px;
+    }
+
+    .compact-question-form button {
+        flex: 0 0 auto;
+        width: auto !important;
+        min-width: 72px;
+        min-height: 32px;
+        padding: 6px 9px;
+        font-size: 12px;
+    }
+
+    .wrong-count-box {
+        min-width: 128px;
+        padding: 7px 10px;
+    }
+
+    .wrong-count-hint {
+        font-size: 11px;
+        margin-top: 3px;
+    }
+}
+
+@media (max-width: 380px) {
+    .compact-question-form {
+        flex-direction: row !important;
+    }
+
+    .compact-question-form input {
+        width: auto !important;
+        min-width: 0;
+    }
+
+    .compact-question-form button {
+        width: auto !important;
+        min-width: 66px;
+        padding-left: 7px;
+        padding-right: 7px;
+        font-size: 11px;
+    }
+}
+
+/* ===== 问答与猜测结果标识样式 ===== */
+.qa-answer-badge {
+    display: inline-block;
+    background: #2f2f2f;
+    color: #ffffff;
+    border-radius: 999px;
+    padding: 4px 12px;
+    font-size: 13px;
+    font-weight: 700;
+    margin-left: 10px;
+    white-space: nowrap;
+    line-height: 1.3;
+}
+
+.qa-answer-badge.waiting {
+    background: transparent;
+    color: #888;
+    border: 1px solid #ccc;
+    font-weight: 400;
+}
+
+.guess-result-badge {
+    display: inline-block;
+    background: #2f2f2f;
+    color: #fff;
+    border-radius: 999px;
+    padding: 3px 10px;
+    font-size: 12px;
+    font-weight: 700;
+    margin-left: 10px;
+    white-space: nowrap;
+}
+
+.guess-result-badge.correct {
+    background: #2c5e2a;
+}
+
+.guess-result-badge.wrong {
+    background: #9c3e2f;
+}
+
+/* 让问题和回答在同一行（移动端可换行） */
+.question-with-answer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.question-text {
+    flex: 1;
+    word-break: break-word;
+}
+
+.current-round-qa-item .qa-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+@media (max-width: 600px) {
+    .qa-answer-badge {
+        font-size: 11px;
+        padding: 3px 8px;
+    }
+    .guess-result-badge {
+        font-size: 10px;
+        padding: 2px 7px;
+    }
+}
+
+.guess-with-result {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 8px;
+    margin: 0;
+}
