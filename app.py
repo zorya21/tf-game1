@@ -473,7 +473,7 @@ def api_state(room_code):
 
     # 自适应轮询间隔
     if winner is not None:
-        poll_interval_ms = 30000
+        poll_interval_ms = 5000
     elif not started:
         poll_interval_ms = 5000
     else:
@@ -490,9 +490,9 @@ def api_state(room_code):
             my_guess = game["round_guesses"].get(player)
             is_my_turn = (my_guess is None)
         if is_my_turn:
-            poll_interval_ms = 1800
+            poll_interval_ms = 1500
         else:
-            poll_interval_ms = 8000
+            poll_interval_ms = 3000
 
     expected_asker = get_asker_for_phase(phase)
     expected_answerer = get_answerer_for_phase(phase)
